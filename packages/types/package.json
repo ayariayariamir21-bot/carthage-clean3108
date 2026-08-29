@@ -1,0 +1,16 @@
+{
+  "name": "@carthage-clean/types",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@carthage-clean/config": "workspace:*"
+  }
+}
