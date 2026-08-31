@@ -1,4 +1,0 @@
-
-> @carthage-clean/types@0.0.0 typecheck D:\carthage-clean\packages\types
-> tsc --noEmit
-

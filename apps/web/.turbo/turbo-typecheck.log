@@ -1,4 +1,0 @@
-
-> @carthage-clean/web@0.0.0 typecheck D:\carthage-clean\apps\web
-> tsc --noEmit
-

@@ -7,11 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:bootstrap": "tsx scripts/bootstrap-admin.ts",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@carthage-clean/types": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
     "next": "^15.1.6",
+    "pg": "^8.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -20,12 +28,18 @@
     "@eslint/eslintrc": "^3.2.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.10.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.1.0",
+    "autoprefixer": "^10.5.4",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.6",
     "jsdom": "^30.0.1",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4",
+    "tsx": "^4.23.12",
     "typescript": "^5.7.0",
     "vitest": "^4.1.11"
   }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Carthage-Clean",
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif" }}>
+      <body className="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased">
         {children}
       </body>
     </html>
