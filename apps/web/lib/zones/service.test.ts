@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   createZone,
   deleteZone,
@@ -7,6 +7,11 @@ import {
   updateZone,
   type ZoneRepository,
 } from "./service";
+import { logAuditEvent } from "@/lib/audit/log";
+
+vi.mock("@/lib/audit/log", () => ({
+  logAuditEvent: vi.fn(),
+}));
 
 function makeRepo(overrides: Partial<ZoneRepository> = {}): {
   repo: ZoneRepository;
@@ -14,16 +19,34 @@ function makeRepo(overrides: Partial<ZoneRepository> = {}): {
   updated: Array<{ id: string; data: unknown }>;
   actives: Array<{ id: string; value: boolean }>;
   deleted: string[];
+  tourCounts: Map<string, number>;
+  auditEvents: Array<{
+    actorId: string | null;
+    action: string;
+    entityType: string;
+    entityId: string;
+    metadata?: unknown;
+  }>;
 } {
   const inserted: unknown[] = [];
   const updated: Array<{ id: string; data: unknown }> = [];
   const actives: Array<{ id: string; value: boolean }> = [];
   const deleted: string[] = [];
+  const tourCounts = new Map<string, number>();
+  const auditEvents: Array<{
+    actorId: string | null;
+    action: string;
+    entityType: string;
+    entityId: string;
+    metadata?: unknown;
+  }> = [];
   return {
     inserted,
     updated,
     actives,
     deleted,
+    tourCounts,
+    auditEvents,
     repo: {
       listZones: async () => [],
       findZoneById: async () => ({
@@ -50,6 +73,7 @@ function makeRepo(overrides: Partial<ZoneRepository> = {}): {
       deleteZone: async (id) => {
         deleted.push(id);
       },
+      countToursByZone: async (zoneId) => tourCounts.get(zoneId) ?? 0,
       ...overrides,
     },
   };
@@ -92,6 +116,70 @@ describe("createZone", () => {
       expect(result.error).toBe("code_taken");
     }
   });
+
+  it("rejects name exceeding max length", async () => {
+    const { repo } = makeRepo();
+    const longName = "A".repeat(101);
+    const result = await createZone({ name: longName, code: "Z01" }, { repository: repo });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("name_too_long");
+    }
+  });
+
+  it("rejects code exceeding max length after normalization", async () => {
+    const { repo } = makeRepo();
+    const longCode = "A".repeat(21);
+    const result = await createZone({ name: "X", code: longCode }, { repository: repo });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("code_too_long");
+    }
+  });
+
+  it("rejects description exceeding max length", async () => {
+    const { repo } = makeRepo();
+    const longDesc = "A".repeat(501);
+    const result = await createZone(
+      { name: "X", code: "Z01", description: longDesc },
+      { repository: repo },
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("description_too_long");
+    }
+  });
+
+  it("accepts name at exactly max length", async () => {
+    const { repo } = makeRepo();
+    const maxName = "A".repeat(100);
+    const result = await createZone({ name: maxName, code: "Z01" }, { repository: repo });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts code at exactly max length", async () => {
+    const { repo } = makeRepo();
+    const maxCode = "A".repeat(20);
+    const result = await createZone({ name: "X", code: maxCode }, { repository: repo });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts description at exactly max length", async () => {
+    const { repo } = makeRepo();
+    const maxDesc = "A".repeat(500);
+    const result = await createZone(
+      { name: "X", code: "Z01", description: maxDesc },
+      { repository: repo },
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts Unicode characters in name", async () => {
+    const { repo } = makeRepo();
+    const unicodeName = "Zone 北京 東京";
+    const result = await createZone({ name: unicodeName, code: "Z01" }, { repository: repo });
+    expect(result.ok).toBe(true);
+  });
 });
 
 describe("updateZone", () => {
@@ -125,6 +213,57 @@ describe("updateZone", () => {
       expect(result.error).toBe("not_found");
     }
   });
+
+  it("rejects name exceeding max length on update", async () => {
+    const { repo } = makeRepo();
+    const longName = "A".repeat(101);
+    const result = await updateZone("z1", { name: longName }, { repository: repo });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("name_too_long");
+    }
+  });
+
+  it("rejects code exceeding max length on update", async () => {
+    const { repo } = makeRepo();
+    const longCode = "A".repeat(21);
+    const result = await updateZone("z1", { code: longCode }, { repository: repo });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("code_too_long");
+    }
+  });
+
+  it("rejects description exceeding max length on update", async () => {
+    const { repo } = makeRepo();
+    const longDesc = "A".repeat(501);
+    const result = await updateZone("z1", { description: longDesc }, { repository: repo });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("description_too_long");
+    }
+  });
+
+  it("accepts name at exactly max length on update", async () => {
+    const { repo } = makeRepo();
+    const maxName = "A".repeat(100);
+    const result = await updateZone("z1", { name: maxName }, { repository: repo });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts code at exactly max length on update", async () => {
+    const { repo } = makeRepo();
+    const maxCode = "A".repeat(20);
+    const result = await updateZone("z1", { code: maxCode }, { repository: repo });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts description at exactly max length on update", async () => {
+    const { repo } = makeRepo();
+    const maxDesc = "A".repeat(500);
+    const result = await updateZone("z1", { description: maxDesc }, { repository: repo });
+    expect(result.ok).toBe(true);
+  });
 });
 
 describe("setZoneActive", () => {
@@ -149,11 +288,19 @@ describe("setZoneActive", () => {
 });
 
 describe("deleteZone", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("deletes an existing zone", async () => {
     const { repo, deleted } = makeRepo();
-    const result = await deleteZone("z1", { repository: repo });
+    const result = await deleteZone("z1", { repository: repo, actorId: "admin-1" });
     expect(result.ok).toBe(true);
     expect(deleted).toEqual(["z1"]);
+    expect(logAuditEvent).toHaveBeenCalledWith("admin-1", "zone.delete", "zone", "z1", {
+      name: "Nord",
+      code: "Z01",
+    });
   });
 
   it("returns not_found for an unknown zone", async () => {
@@ -163,5 +310,43 @@ describe("deleteZone", () => {
     if (!result.ok) {
       expect(result.error).toBe("not_found");
     }
+    expect(logAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it("returns has_tours when zone has dependent tours", async () => {
+    const { repo, tourCounts } = makeRepo();
+    tourCounts.set("z1", 3);
+    const result = await deleteZone("z1", { repository: repo });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("has_tours");
+    }
+    expect(logAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it("deletes zone with zero tours", async () => {
+    const { repo, deleted, tourCounts } = makeRepo();
+    tourCounts.set("z1", 0);
+    const result = await deleteZone("z1", { repository: repo, actorId: "admin-1" });
+    expect(result.ok).toBe(true);
+    expect(deleted).toEqual(["z1"]);
+    expect(logAuditEvent).toHaveBeenCalledWith("admin-1", "zone.delete", "zone", "z1", {
+      name: "Nord",
+      code: "Z01",
+    });
+  });
+
+  it("returns foreign_key on FK constraint violation", async () => {
+    const { repo } = makeRepo({
+      deleteZone: async () => {
+        throw new Error("foreign key constraint violated");
+      },
+    });
+    const result = await deleteZone("z1", { repository: repo });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("foreign_key");
+    }
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 });

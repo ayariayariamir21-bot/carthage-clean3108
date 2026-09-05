@@ -8,8 +8,9 @@ export const SITE = {
     "Carthage-Clean assure la collecte des déchets, le nettoyage des espaces publics et l'entretien des espaces verts pour une ville propre, sûre et agréable à vivre.",
   email: "contact@carthage-clean.tn",
   phone: "+216 71 000 000",
-  address: "Avenue Habib Bourguiba, 2016 Carthage, Tunisie",
-  mapUrl: "https://www.google.com/maps/search/?api=1&query=Carthage%20Tunisie",
+  address: "Soliman,Nabeul 8020 rue de la plage, Tunisie",
+  mapUrl:
+    "https://www.google.com/maps/place/36%C2%B042'35.6%22N+10%C2%B029'19.5%22E/@36.7098943,10.4861771,581m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d36.70989!4d10.488752?entry=ttu&g_ep=EgoyMDI2MDgyNi4wIKXMDSoASAFQAw%3D%3D",
   contactIntro:
     "Une question, une demande ou un signalement de propreté ? Écrivez-nous, nous vous répondons rapidement.",
   hours: [
@@ -163,8 +164,8 @@ export const TEAM: Array<{
   role: string;
   initials: string;
 }> = [
-  { name: "Leïla Ben Ammar", role: "Directrice générale", initials: "LB" },
-  { name: "Karim Trabelsi", role: "Responsable des opérations", initials: "KT" },
-  { name: "Sana Gharbi", role: "Coordinatrice des espaces verts", initials: "SG" },
-  { name: "Youssef Mansour", role: "Chargé du signalement citoyen", initials: "YM" },
+  { name: "Med Alaa Ayari", role: "Directrice générale", initials: "MA" },
+  { name: "Amir Ayari", role: "Responsable des opérations", initials: "AA" },
+  { name: "Salah Ayari", role: "Coordinatrice des espaces verts", initials: "SA" },
+  { name: "Équipe Signalement", role: "Chargé du signalement citoyen", initials: "ES" },
 ];

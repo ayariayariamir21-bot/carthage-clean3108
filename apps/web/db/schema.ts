@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   team: text("team"),
   notes: text("notes"),
   defaultZoneId: uuid("default_zone_id").references(() => zones.id, { onDelete: "set null" }),
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -69,7 +70,14 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const TOUR_STATUSES = ["planifiée", "en_cours", "terminée", "annulée"] as const;
+export const tourStatusEnum = pgEnum("tour_status", [
+  "planifiée",
+  "en_cours",
+  "terminée",
+  "annulée",
+]);
+
+export const TOUR_STATUSES = tourStatusEnum.enumValues;
 export type TourStatus = (typeof TOUR_STATUSES)[number];
 
 export const tours = pgTable(
@@ -82,7 +90,7 @@ export const tours = pgTable(
     date: date("date").notNull(),
     startTime: time("start_time").notNull(),
     endTime: time("end_time").notNull(),
-    status: text("status").notNull().default("planifiée"),
+    status: tourStatusEnum("status").notNull().default("planifiée"),
     notes: text("notes"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),

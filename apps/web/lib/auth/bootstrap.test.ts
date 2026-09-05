@@ -20,12 +20,12 @@ function makeRepo(overrides: Partial<BootstrapRepository> = {}): {
 }
 
 describe("bootstrapAdmin", () => {
-  it("creates an admin with role 'admin' and a hashed password when none exists", async () => {
+  it("creates an admin with role 'admin', hashed password, and mustChangePassword flag when none exists", async () => {
     const { repo, calls } = makeRepo();
     const hashes: string[] = [];
 
     const result = await bootstrapAdmin(
-      { email: "Admin@Carthage.TN ", password: "Sup3rSecret!" },
+      { email: "Admin@Carthage.TN " },
       {
         repository: repo,
         hash: async (pw) => {
@@ -38,13 +38,21 @@ describe("bootstrapAdmin", () => {
     expect(result.created).toBe(true);
     if (result.created) {
       expect(result.user.email).toBe("admin@carthage.tn");
+      expect(typeof result.initialPassword).toBe("string");
+      expect(result.initialPassword.length).toBeGreaterThanOrEqual(20);
     }
     expect(calls.created).toHaveLength(1);
-    const created = calls.created[0] as { email: string; passwordHash: string; role: string };
+    const created = calls.created[0] as {
+      email: string;
+      passwordHash: string;
+      role: string;
+      mustChangePassword: boolean;
+    };
     expect(created.email).toBe("admin@carthage.tn");
     expect(created.role).toBe("admin");
-    expect(created.passwordHash).toBe("hashed(Sup3rSecret!)");
-    expect(hashes).toEqual(["Sup3rSecret!"]);
+    expect(created.mustChangePassword).toBe(true);
+    expect(created.passwordHash).toBe(`hashed(${hashes[0]})`);
+    expect(hashes).toHaveLength(1);
   });
 
   it("does nothing when an admin already exists", async () => {
@@ -52,10 +60,7 @@ describe("bootstrapAdmin", () => {
       findAdmin: async () => ({ id: "existing", role: "admin" }),
     });
 
-    const result = await bootstrapAdmin(
-      { email: "admin@carthage.tn", password: "whatever" },
-      { repository: repo },
-    );
+    const result = await bootstrapAdmin({ email: "admin@carthage.tn" }, { repository: repo });
 
     expect(result.created).toBe(false);
     if (!result.created) {

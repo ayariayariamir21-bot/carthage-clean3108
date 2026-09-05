@@ -2,6 +2,26 @@ import { and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs, users } from "@/db/schema";
 
+const MIN_PAGE = 1;
+const MIN_PAGE_SIZE = 1;
+const MAX_PAGE_SIZE = 100;
+
+export function normalizePage(value: unknown): number {
+  if (value === undefined || value === null) return MIN_PAGE;
+  const num = Number(value);
+  if (Number.isNaN(num)) return MIN_PAGE;
+  const clamped = Math.max(MIN_PAGE, Math.floor(num));
+  return clamped;
+}
+
+export function normalizePageSize(value: unknown): number {
+  if (value === undefined || value === null) return MAX_PAGE_SIZE;
+  const num = Number(value);
+  if (Number.isNaN(num)) return MAX_PAGE_SIZE;
+  const clamped = Math.min(MAX_PAGE_SIZE, Math.max(MIN_PAGE_SIZE, Math.floor(num)));
+  return clamped;
+}
+
 export interface AuditEventInput {
   userId: string | null;
   action: string;
@@ -51,6 +71,9 @@ export const dbAuditRepository: AuditRepository = {
   },
 
   async listAuditLogs(filters, page, pageSize) {
+    const safePage = normalizePage(page);
+    const safePageSize = normalizePageSize(pageSize);
+
     const conditions: import("drizzle-orm").SQL[] = [];
     if (filters.action) conditions.push(eq(auditLogs.action, filters.action));
     if (filters.entityType) conditions.push(eq(auditLogs.entityType, filters.entityType));
@@ -84,8 +107,8 @@ export const dbAuditRepository: AuditRepository = {
       .leftJoin(users, eq(auditLogs.userId, users.id))
       .where(where)
       .orderBy(desc(auditLogs.createdAt))
-      .limit(pageSize)
-      .offset((page - 1) * pageSize);
+      .limit(safePageSize)
+      .offset((safePage - 1) * safePageSize);
 
     const [countRow] = await db
       .select({ value: sql<number>`count(*)` })

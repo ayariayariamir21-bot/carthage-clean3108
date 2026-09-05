@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canViewTourDetail, filterSortPaginateTours, toToursCsv, type TourQueryRow } from "./query";
-import type { TourStatus } from "@/db/schema";
+import { canViewTourDetail, csvEscape, toToursCsv, type TourQueryRow } from "./query";
 
 function row(overrides: Partial<TourQueryRow> & { id: string }): TourQueryRow {
   const { id, ...rest } = overrides;
@@ -11,7 +10,7 @@ function row(overrides: Partial<TourQueryRow> & { id: string }): TourQueryRow {
     date: "2024-01-01",
     startTime: "08:00",
     endTime: "12:00",
-    status: "planifiée" as TourStatus,
+    status: "planifiée",
     notes: null,
     startedAt: null,
     completedAt: null,
@@ -28,98 +27,38 @@ function row(overrides: Partial<TourQueryRow> & { id: string }): TourQueryRow {
   };
 }
 
-function makeRows(count: number): TourQueryRow[] {
-  return Array.from({ length: count }, (_, i) => {
-    const creator =
-      i % 2 === 0 ? { id: "creator-1", name: "Alice" } : { id: "creator-2", name: "Bob" };
-    return row({
-      id: `t${i + 1}`,
-      date: `2024-01-${String((i % 28) + 1).padStart(2, "0")}`,
-      status: (i % 2 === 0 ? "planifiée" : "en_cours") as TourStatus,
-      zoneName: i % 2 === 0 ? "Zone Nord" : "Zone Sud",
-      createdBy: creator.id,
-      creatorName: creator.name,
-    });
-  });
-}
-
-describe("filterSortPaginateTours", () => {
-  it("paginates correctly", () => {
-    const rows = makeRows(25);
-    const p1 = filterSortPaginateTours(rows, { page: 1, pageSize: 10 });
-    const p2 = filterSortPaginateTours(rows, { page: 2, pageSize: 10 });
-    const p3 = filterSortPaginateTours(rows, { page: 3, pageSize: 10 });
-    expect(p1.total).toBe(25);
-    expect(p1.rows).toHaveLength(10);
-    expect(p3.rows).toHaveLength(5);
-
-    const ids1 = new Set(p1.rows.map((r) => r.id));
-    const ids2 = new Set(p2.rows.map((r) => r.id));
-    expect([...ids1].some((id) => ids2.has(id))).toBe(false);
+describe("csvEscape", () => {
+  it("escapes formula injection prefixes", () => {
+    expect(csvEscape("=SUM(A1:A2)")).toBe("'=SUM(A1:A2)");
+    expect(csvEscape("+123")).toBe("'+123");
+    expect(csvEscape("-123")).toBe("'-123");
+    expect(csvEscape("@cmd")).toBe("'@cmd");
+    expect(csvEscape("\t=SUM(A1)")).toBe("'\t=SUM(A1)");
+    expect(csvEscape("\r=EVIL")).toBe('"\r=EVIL"');
   });
 
-  it("clamps out-of-range pages", () => {
-    const rows = makeRows(5);
-    const result = filterSortPaginateTours(rows, { page: 99, pageSize: 10 });
-    expect(result.rows).toHaveLength(5);
+  it("preserves normal text", () => {
+    expect(csvEscape("normal text")).toBe("normal text");
+    expect(csvEscape("Zone Nord")).toBe("Zone Nord");
   });
 
-  it("sorts by date ascending and descending", () => {
-    const rows = makeRows(10);
-    const asc = filterSortPaginateTours(rows, { sort: { column: "date", direction: "asc" } });
-    const desc = filterSortPaginateTours(rows, { sort: { column: "date", direction: "desc" } });
-    expect(asc.rows[0]!.date <= asc.rows[asc.rows.length - 1]!.date).toBe(true);
-    expect(desc.rows[0]!.date >= desc.rows[desc.rows.length - 1]!.date).toBe(true);
-    expect(desc.rows[0]!.id).not.toBe(asc.rows[0]!.id);
+  it("escapes quotes, commas, and newlines", () => {
+    expect(csvEscape('Quote "ici"')).toBe('"Quote ""ici"""');
+    expect(csvEscape("Zone, Nord")).toBe('"Zone, Nord"');
+    expect(csvEscape("line1\nline2")).toBe('"line1\nline2"');
+    expect(csvEscape("line1\rline2")).toBe('"line1\rline2"');
+    expect(csvEscape("line1\r\nline2")).toBe('"line1\r\nline2"');
   });
 
-  it("sorts by status and creator", () => {
-    const rows = makeRows(10);
-    const byStatus = filterSortPaginateTours(rows, {
-      sort: { column: "status", direction: "asc" },
-    });
-    expect(byStatus.rows[0]!.status <= byStatus.rows[byStatus.rows.length - 1]!.status).toBe(true);
-    const byCreator = filterSortPaginateTours(rows, {
-      sort: { column: "creator", direction: "asc" },
-    });
-    expect(
-      (byCreator.rows[0]!.creatorName ?? "") <=
-        (byCreator.rows[byCreator.rows.length - 1]!.creatorName ?? ""),
-    ).toBe(true);
+  it("escapes formula prefix combined with quotes/commas", () => {
+    expect(csvEscape('=SUM("A1")')).toBe('"\'=SUM(""A1"")"');
+    expect(csvEscape("=A1,B2")).toBe('"\'=A1,B2"');
+    expect(csvEscape("=A1\nB2")).toBe('"\'=A1\nB2"');
   });
 
-  it("filters by status, creator and zone code combined", () => {
-    const rows = makeRows(20);
-    const result = filterSortPaginateTours(rows, {
-      filters: { status: "planifiée", creatorId: "creator-1", zoneCode: "zn" },
-    });
-    expect(result.total).toBeGreaterThan(0);
-    for (const r of result.rows) {
-      expect(r.status).toBe("planifiée");
-      expect(r.creatorName ?? "").toBe("Alice");
-      expect((r.zoneCode ?? "").toLowerCase()).toContain("zn");
-    }
-  });
-
-  it("filters by date range", () => {
-    const rows = makeRows(20);
-    const result = filterSortPaginateTours(rows, {
-      filters: { dateFrom: "2024-01-05", dateTo: "2024-01-10" },
-    });
-    for (const r of result.rows) {
-      expect(r.date >= "2024-01-05" && r.date <= "2024-01-10").toBe(true);
-    }
-  });
-
-  it("filters by agent name/matricule", () => {
-    const rows = [
-      row({ id: "a", agentNames: ["Jean Dupont"], agentMatricules: ["M-1"] }),
-      row({ id: "b", agentNames: ["Marie"], agentMatricules: ["M-99"] }),
-    ];
-    const byName = filterSortPaginateTours(rows, { filters: { agent: "dupont" } });
-    expect(byName.rows.map((r) => r.id)).toEqual(["a"]);
-    const byMat = filterSortPaginateTours(rows, { filters: { agent: "m-99" } });
-    expect(byMat.rows.map((r) => r.id)).toEqual(["b"]);
+  it("handles null and undefined", () => {
+    expect(csvEscape(null)).toBe("");
+    expect(csvEscape(undefined)).toBe("");
   });
 });
 
@@ -140,6 +79,24 @@ describe("toToursCsv", () => {
     expect(lines[1]).toContain('"Zone, Nord"');
     expect(lines[1]).toContain('"Quote ""ici"""');
     expect(lines[1]).toContain("Jean, Marie");
+  });
+
+  it("neutralizes formula injection in user-controlled fields", () => {
+    const rows = [
+      row({
+        id: "t1",
+        zoneName: "=SUM(A1:A2)",
+        notes: "+EVIL",
+        agentNames: ["@cmd"],
+        cancellationReason: "-INJECT",
+      }),
+    ];
+    const csv = toToursCsv(rows);
+    const lines = csv.split("\r\n");
+    expect(lines[1]).toContain("'=SUM(A1:A2)");
+    expect(lines[1]).toContain("'+EVIL");
+    expect(lines[1]).toContain("'@cmd");
+    expect(lines[1]).toContain("'-INJECT");
   });
 });
 

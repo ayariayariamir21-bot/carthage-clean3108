@@ -30,7 +30,7 @@ export const dbDashboardRepository: DashboardRepository = {
       annulée: 0,
     };
     for (const row of rows) {
-      counts[row.status as TourStatus] = row.total;
+      counts[row.status] = row.total;
     }
     return counts;
   },
@@ -59,10 +59,10 @@ export const dbDashboardRepository: DashboardRepository = {
 
   async listToursForUserBetween(userId, since, until) {
     const result = await dbTourRepository.queryTours({
-      filters: { dateFrom: since, dateTo: until },
+      filters: { dateFrom: since, dateTo: until, agentId: userId },
       pageSize: 1000,
       sort: { column: "date", direction: "asc" },
     });
-    return result.rows.filter((row) => row.agentIds.includes(userId));
+    return result.rows;
   },
 };

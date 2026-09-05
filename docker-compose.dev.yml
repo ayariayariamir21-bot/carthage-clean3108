@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: carthage-postgres-dev
+    environment:
+      POSTGRES_USER: carthage
+      POSTGRES_PASSWORD: carthage
+      POSTGRES_DB: carthage_clean_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./apps/web/db/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carthage -d carthage_clean_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - carthage-dev-network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: carthage-web-dev
+    command: pnpm --filter @carthage-clean/web dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://carthage:carthage@postgres:5432/carthage_clean_dev?schema=public
+      ADMIN_EMAIL: admin@example.com
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - /app/.turbo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - carthage-dev-network
+
+  public-site:
+    build:
+      context: .
+      dockerfile: Dockerfile.public-site
+      target: builder
+    container_name: carthage-public-site-dev
+    command: pnpm --filter @carthage-clean/public-site dev
+    environment:
+      NODE_ENV: development
+    ports:
+      - "3001:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - /app/.turbo
+    networks:
+      - carthage-dev-network
+
+volumes:
+  postgres_dev_data:
+
+networks:
+  carthage-dev-network:
+    driver: bridge

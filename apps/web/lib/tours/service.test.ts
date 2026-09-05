@@ -49,6 +49,24 @@ describe("parseDateOnly / isTodayOrFuture", () => {
     expect(parseDateOnly("")).toBeNull();
   });
 
+  it("validates calendar dates correctly", () => {
+    expect(parseDateOnly("2026-02-28")).toBe("2026-02-28");
+    expect(parseDateOnly("2026-02-29")).toBeNull();
+    expect(parseDateOnly("2026-02-31")).toBeNull();
+    expect(parseDateOnly("2024-02-29")).toBe("2024-02-29");
+    expect(parseDateOnly("2024-02-30")).toBeNull();
+    expect(parseDateOnly("2026-04-31")).toBeNull();
+    expect(parseDateOnly("2026-06-31")).toBeNull();
+    expect(parseDateOnly("2026-09-31")).toBeNull();
+    expect(parseDateOnly("2026-11-31")).toBeNull();
+    expect(parseDateOnly("2026-00-15")).toBeNull();
+    expect(parseDateOnly("2026-13-15")).toBeNull();
+    expect(parseDateOnly("2026-01-00")).toBeNull();
+    expect(parseDateOnly("2026-01-32")).toBeNull();
+    expect(parseDateOnly("0000-01-01")).toBeNull();
+    expect(parseDateOnly("10000-01-01")).toBeNull();
+  });
+
   it("detects today or future", () => {
     const future = new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 10);
     expect(isTodayOrFuture(future)).toBe(true);

@@ -5,7 +5,9 @@ import { sessions, users } from "@/db/schema";
 import { sha256, SESSION_COOKIE } from "./session";
 import type { AuthUser } from "./rbac";
 
-export async function getCurrentUser(): Promise<AuthUser | null> {
+export async function getCurrentUser(): Promise<
+  (AuthUser & { mustChangePassword: boolean }) | null
+> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) {
     return null;
@@ -17,6 +19,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       id: users.id,
       email: users.email,
       role: users.role,
+      mustChangePassword: users.mustChangePassword,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
@@ -28,5 +31,10 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null;
   }
 
-  return { id: row.id, email: row.email, role: row.role };
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    mustChangePassword: row.mustChangePassword,
+  };
 }

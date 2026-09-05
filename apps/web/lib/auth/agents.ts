@@ -4,6 +4,7 @@ import { sessions, users, zones } from "@/db/schema";
 import { hashPassword } from "./password";
 import type { Role } from "./rbac";
 import { logAuditEvent, type AuditRepository } from "@/lib/audit/log";
+import { validatePasswordStrict, PASSWORD_MIN_LENGTH } from "./password-policy";
 
 export interface AgentRecord {
   id: string;
@@ -174,7 +175,15 @@ export interface CreateAgentInput {
 
 export type CreateAgentResult =
   | { ok: true; user: { id: string; email: string } }
-  | { ok: false; error: "invalid" | "email_taken" };
+  | {
+      ok: false;
+      error:
+        | "invalid"
+        | "email_taken"
+        | "password_too_short"
+        | "password_too_long"
+        | "password_leading_trailing_space";
+    };
 
 export interface AgentOptions {
   repository?: AgentRepository;
@@ -198,8 +207,23 @@ export async function createAgent(
   const notes = input.notes?.trim() || null;
   const hireDate = parseHireDate(input.hireDate);
 
-  if (!name || !isValidEmail(email) || input.password.length < 8) {
+  if (!name || !isValidEmail(email) || input.password.length < PASSWORD_MIN_LENGTH) {
     return { ok: false, error: "invalid" };
+  }
+
+  const passwordValidation = validatePasswordStrict(input.password);
+  if (!passwordValidation.ok) {
+    const errorMap: Record<
+      string,
+      "password_too_short" | "password_too_long" | "password_leading_trailing_space"
+    > = {
+      "Le mot de passe doit contenir au moins 8 caractères": "password_too_short",
+      "Le mot de passe ne doit pas dépasser 128 caractères": "password_too_long",
+      "Le mot de passe ne doit pas commencer ou se terminer par un espace":
+        "password_leading_trailing_space",
+    };
+    const mappedError = errorMap[passwordValidation.error] ?? "invalid";
+    return { ok: false, error: mappedError };
   }
   if (phone !== null && !isValidPhone(phone)) {
     return { ok: false, error: "invalid" };

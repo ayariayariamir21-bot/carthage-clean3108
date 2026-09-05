@@ -12,6 +12,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid: "Données invalides (nom et code requis).",
   code_taken: "Ce code existe déjà.",
   not_found: "Zone introuvable.",
+  name_too_long: "Le nom de zone ne doit pas dépasser 100 caractères.",
+  code_too_long: "Le code de zone ne doit pas dépasser 20 caractères.",
+  description_too_long: "La description ne doit pas dépasser 500 caractères.",
+  has_tours: "Impossible de supprimer : la zone a des tournées associées.",
+  has_assignments: "Impossible de supprimer : la zone a des affectations.",
+  foreign_key: "Impossible de supprimer : contrainte de clé étrangère.",
 };
 
 export async function createZoneAction(
@@ -76,6 +82,11 @@ export async function deleteZoneAction(formData: FormData): Promise<void> {
   await requireRolesAction([...ZONE_ROLES]);
 
   const id = String(formData.get("id") ?? "");
-  await deleteZone(id);
+  const result = await deleteZone(id, { actorId: (await requireRolesAction([...ZONE_ROLES])).id });
+
+  if (!result.ok) {
+    throw new Error(ERROR_MESSAGES[result.error] ?? "Échec de la suppression.");
+  }
+
   revalidatePath("/admin/zones");
 }

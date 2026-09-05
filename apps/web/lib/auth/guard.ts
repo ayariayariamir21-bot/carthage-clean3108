@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "./current-user";
 import { authorize, type AuthUser, type Role } from "./rbac";
 
-async function enforceRoles(roles: Role[]): Promise<AuthUser> {
+type AuthUserWithPasswordFlag = AuthUser & { mustChangePassword: boolean };
+
+async function enforceRoles(
+  roles: Role[],
+  allowPasswordChange = true,
+): Promise<AuthUserWithPasswordFlag> {
   const user = await getCurrentUser();
   if (!user) {
     redirect("/login");
@@ -11,18 +16,23 @@ async function enforceRoles(roles: Role[]): Promise<AuthUser> {
   if (!roles.includes(user.role)) {
     redirect("/forbidden");
   }
-  return user;
+  if (allowPasswordChange && user.mustChangePassword) {
+    redirect("/auth/change-password");
+  }
+  return user as AuthUserWithPasswordFlag;
 }
 
-export async function requireRolePage(required: Role = "admin"): Promise<AuthUser> {
+export async function requireRolePage(required: Role = "admin"): Promise<AuthUserWithPasswordFlag> {
   return enforceRoles([required]);
 }
 
-export async function requireRolesPage(roles: Role[]): Promise<AuthUser> {
+export async function requireRolesPage(roles: Role[]): Promise<AuthUserWithPasswordFlag> {
   return enforceRoles(roles);
 }
 
-export async function requireRoleApi(required: Role = "admin"): Promise<AuthUser | NextResponse> {
+export async function requireRoleApi(
+  required: Role = "admin",
+): Promise<AuthUserWithPasswordFlag | NextResponse> {
   const user = await getCurrentUser();
   const decision = authorize(user, required);
 
@@ -33,13 +43,22 @@ export async function requireRoleApi(required: Role = "admin"): Promise<AuthUser
     return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
   }
 
-  return decision.user;
+  if (decision.user.mustChangePassword) {
+    return NextResponse.json(
+      { error: "Changement de mot de passe requis.", redirect: "/auth/change-password" },
+      { status: 403 },
+    );
+  }
+
+  return decision.user as AuthUserWithPasswordFlag;
 }
 
-export async function requireRoleAction(required: Role = "admin"): Promise<AuthUser> {
-  return enforceRoles([required]);
+export async function requireRoleAction(
+  required: Role = "admin",
+): Promise<AuthUserWithPasswordFlag> {
+  return enforceRoles([required], false);
 }
 
-export async function requireRolesAction(roles: Role[]): Promise<AuthUser> {
-  return enforceRoles(roles);
+export async function requireRolesAction(roles: Role[]): Promise<AuthUserWithPasswordFlag> {
+  return enforceRoles(roles, false);
 }

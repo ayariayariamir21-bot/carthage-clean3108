@@ -39,3 +39,9 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright / test artifacts
+playwright-report
+**/playwright-report
+test-results
+**/test-results

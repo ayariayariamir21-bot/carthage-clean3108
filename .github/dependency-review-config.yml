@@ -1,0 +1,15 @@
+# Dependency Review Configuration
+# Fail on moderate and higher severity vulnerabilities
+fail-on-severity: moderate
+
+# Ignore specific advisories if needed (format: GHSA-xxxx-xxxx-xxxx)
+# ignored-advisories: []
+
+# Allow certain licenses
+# allowed-licenses: [MIT, Apache-2.0, BSD-3-Clause, ISC]
+
+# Severity thresholds
+# low: 0
+# moderate: 0
+# high: 0
+# critical: 0

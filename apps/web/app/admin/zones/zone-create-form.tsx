@@ -25,22 +25,22 @@ export function ZoneCreateForm() {
           </div>
         ) : null}
         <div className="field">
-          <label className="label" htmlFor="zone-name">
+          <label className="label" htmlFor="name">
             Nom
           </label>
-          <input id="zone-name" name="name" type="text" required className="input" />
+          <input id="name" name="name" type="text" required className="input" />
         </div>
         <div className="field">
-          <label className="label" htmlFor="zone-code">
+          <label className="label" htmlFor="code">
             Code (ex. Z01, NORD-A)
           </label>
-          <input id="zone-code" name="code" type="text" required className="input" />
+          <input id="code" name="code" type="text" required className="input" />
         </div>
         <div className="field">
-          <label className="label" htmlFor="zone-desc">
+          <label className="label" htmlFor="description">
             Description (optionnelle)
           </label>
-          <textarea id="zone-desc" name="description" className="input" rows={3} />
+          <textarea id="description" name="description" className="input" rows={3} />
         </div>
         <button type="submit" className="btn btn-primary">
           Créer la zone

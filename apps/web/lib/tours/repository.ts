@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, exists, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { tours, tourAgents, zones, users, type TourStatus } from "@/db/schema";
+import { tours, tourAgents, zones, users } from "@/db/schema";
 import type { InsertTourData, TourRecord, TourRepository } from "./service";
 import type { TourDetail, TourQueryOptions, TourQueryResult, TourQueryRow } from "./query";
 
@@ -109,7 +109,7 @@ export const dbTourRepository: TourRepository = {
       .from(tours)
       .where(eq(tours.id, id))
       .limit(1);
-    return tour ? { ...tour, status: tour.status as TourStatus } : undefined;
+    return tour ? { ...tour, status: tour.status } : undefined;
   },
 
   async findTourAgent(tourId, userId) {
@@ -164,6 +164,16 @@ export const dbTourRepository: TourRepository = {
                 or(ilike(users.name, needle), ilike(users.matricule, needle)),
               ),
             ),
+        ),
+      );
+    }
+    if (filters.agentId) {
+      conditions.push(
+        exists(
+          db
+            .select({ v: sql`1` })
+            .from(tourAgents)
+            .where(and(eq(tourAgents.tourId, tours.id), eq(tourAgents.userId, filters.agentId))),
         ),
       );
     }

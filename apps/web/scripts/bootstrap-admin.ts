@@ -3,24 +3,23 @@ import { bootstrapAdmin } from "@/lib/auth/bootstrap";
 
 async function main(): Promise<void> {
   const email = process.env.ADMIN_EMAIL;
-  const password = process.env.ADMIN_PASSWORD;
 
-  if (!email || !password) {
-    console.error(
-      "Variables d'environnement manquantes : définissez ADMIN_EMAIL et ADMIN_PASSWORD.",
-    );
+  if (!email) {
+    console.error("Variable d'environnement manquante : définissez ADMIN_EMAIL.");
     process.exit(1);
   }
 
-  if (password.length < 8) {
-    console.error("Le mot de passe admin doit contenir au moins 8 caractères.");
-    process.exit(1);
-  }
-
-  const result = await bootstrapAdmin({ email, password });
+  const result = await bootstrapAdmin({ email });
 
   if (result.created) {
     console.log(`✓ Compte admin créé : ${result.user.email} (rôle: admin)`);
+    console.log("");
+    console.log("================================================================");
+    console.log("MOT DE PASSE INITIAL (affiché une seule fois - conservez-le) :");
+    console.log(result.initialPassword);
+    console.log("================================================================");
+    console.log("");
+    console.log("L'administrateur devra changer ce mot de passe lors de sa première connexion.");
   } else {
     console.log("ℹ Un administrateur existe déjà, aucune action effectuée.");
   }

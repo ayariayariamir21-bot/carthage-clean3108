@@ -1,0 +1,68 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+**/.next
+dist
+**/dist
+out
+**/out
+build
+**/build
+
+# Turborepo
+.turbo
+**/.turbo
+
+# TypeScript
+*.tsbuildinfo
+**/*.tsbuildinfo
+next-env.d.ts
+**/next-env.d.ts
+
+# Test coverage
+coverage
+**/coverage
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Docker
+.docker
+docker-compose.override.yml
+
+# Database
+*.sql
+*.dump
+*.backup
+
+# IDE/Editor
+*.vscode/*
+!.vscode/extensions.json
+.idea/*
+
+# Misc
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx

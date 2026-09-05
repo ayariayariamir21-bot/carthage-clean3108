@@ -11,6 +11,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:e2e": "pnpm --filter @carthage-clean/web test:e2e",
     "format": "prettier --write --config packages/config/prettier.config.cjs \"**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check --config packages/config/prettier.config.cjs \"**/*.{ts,tsx,md,json}\"",
     "prepare": "husky"
@@ -26,11 +27,13 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.5",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.6",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "prettier": "^3.4.0",
+    "secretlint": "^13.0.5",
     "turbo": "^2.3.0",
     "typescript": "^5.7.0"
   }

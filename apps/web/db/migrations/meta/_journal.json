@@ -71,6 +71,20 @@
       "when": 1788050070204,
       "tag": "0009_audit_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788210719412,
+      "tag": "0010_milky_invisible_woman",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788222747511,
+      "tag": "0011_wealthy_mariko_yashida",
+      "breakpoints": true
     }
   ]
 }

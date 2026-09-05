@@ -4,6 +4,7 @@ import { dbTourRepository } from "@/lib/tours/repository";
 import { dbZoneRepository } from "@/lib/zones/service";
 import { TOUR_STATUSES } from "@/db/schema";
 import type { TourSortColumn } from "@/lib/tours/query";
+import type { TourStatus } from "@/db/schema";
 import { AppShell } from "@/components/layout/AppShell";
 import { TourList } from "./tour-list";
 
@@ -34,7 +35,7 @@ export default async function ToursPage({
     dateTo: sp.dateTo?.trim() || undefined,
     zoneId: sp.zoneId?.trim() || undefined,
     zoneCode: sp.zoneCode?.trim() || undefined,
-    status: sp.status?.trim() || undefined,
+    status: sp.status?.trim() as TourStatus | undefined,
     agent: sp.agent?.trim() || undefined,
     creatorId: sp.creatorId?.trim() || undefined,
   };

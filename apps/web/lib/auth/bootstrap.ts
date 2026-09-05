@@ -3,10 +3,10 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { hashPassword } from "./password";
 import type { Role } from "./rbac";
+import { randomBytes } from "node:crypto";
 
 export interface BootstrapUserInput {
   email: string;
-  password: string;
 }
 
 export interface BootstrapRepository {
@@ -15,6 +15,7 @@ export interface BootstrapRepository {
     email: string;
     passwordHash: string;
     role: Role;
+    mustChangePassword: boolean;
   }): Promise<{ id: string; email: string }>;
 }
 
@@ -40,12 +41,24 @@ export const dbBootstrapRepository: BootstrapRepository = {
 };
 
 export type BootstrapResult =
-  | { created: true; user: { id: string; email: string } }
+  | { created: true; user: { id: string; email: string }; initialPassword: string }
   | { created: false; reason: "admin_exists" };
 
 export interface BootstrapOptions {
   repository?: BootstrapRepository;
   hash?: (password: string) => Promise<string>;
+}
+
+function generateSecurePassword(): string {
+  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*";
+  const bytes = randomBytes(32);
+  let password = "";
+  for (let i = 0; i < 24; i++) {
+    const byte = bytes[i];
+    if (byte === undefined) continue;
+    password += charset[byte % charset.length];
+  }
+  return password;
 }
 
 export async function bootstrapAdmin(
@@ -60,12 +73,14 @@ export async function bootstrapAdmin(
     return { created: false, reason: "admin_exists" };
   }
 
-  const passwordHash = await hash(input.password);
+  const initialPassword = generateSecurePassword();
+  const passwordHash = await hash(initialPassword);
   const user = await repository.createUser({
     email: input.email.trim().toLowerCase(),
     passwordHash,
     role: "admin",
+    mustChangePassword: true,
   });
 
-  return { created: true, user };
+  return { created: true, user, initialPassword };
 }

@@ -1,0 +1,23 @@
+name: "CodeQL Config"
+
+queries:
+  - uses: security-and-quality
+
+paths-ignore:
+  - "node_modules"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/vitest.config.ts"
+  - "**/next.config.*"
+  - "**/*.d.ts"
+  - "dist/"
+  - "build/"
+  - ".next/"
+  - ".turbo/"
+  - "coverage/"
+
+# Custom queries for TypeScript/React/Next.js
+# - security-and-quality includes security, quality, and correctness queries
+# - Additional custom queries can be added here
